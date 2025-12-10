@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ecommerce-reporting-etl"
+version = "0.1.0"
+description = "Automatización del Proceso de Generación de Métricas de Negocio para E-commerce (ETL)"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pandas>=2.3.3",
+]
+license = {text = "MIT"}
+authors = [
+    {name = "Gerardo Toboso", email = "gerardotoboso1909@gmail.com"}
+]
+maintainers = [
+    {name = "Gerardo Toboso", email = "gerardotoboso1909@gmail.com"}
+]
+
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["*"]
+exclude = ["tests*", "*.tests*", "*.tests.*"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "pytest-html==3.2.0",
+]
