@@ -21,12 +21,8 @@ class InventoryAnalyticsAggregator:
         y calcula su proporción relativa para medir el riesgo agregado.
         """
         total = len(inventory_df)
-        low = inventory_df.get(
-            "is_low_stock", pd.Series(False, index=inventory_df.index)
-        ).sum()
-        over = inventory_df.get(
-            "is_overstock", pd.Series(False, index=inventory_df.index)
-        ).sum()
+        low = inventory_df.get("is_low_stock", pd.Series(dtype=bool)).sum()
+        over = inventory_df.get("is_overstock", pd.Series(dtype=bool)).sum()
         summary = pd.DataFrame(
             {
                 "metric": ["total_items", "low_stock", "overstock"],
