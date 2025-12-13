@@ -75,12 +75,8 @@ class OrdersCleaner(DataCleaner):
                     filled,
                 )
             if after_na > before_na:
-                self.logger.warning(
-                    "Aumento de nulos en '%s' tras estrategia %s (%s -> %s)",
-                    column,
-                    strategy.value,
-                    before_na,
-                    after_na,
+                raise ValueError(
+                    f"Aumento de nulos en '{column}' tras estrategia {strategy.value} ({before_na} -> {after_na})"
                 )
 
         return df
@@ -142,6 +138,12 @@ class OrdersCleaner(DataCleaner):
                         "total_amount recalculado para %s filas con componentes disponibles",
                         len(idx),
                     )
+            still_nan = df["total_amount"].isna() & df["subtotal"].isna()
+            if still_nan.any():
+                self.logger.warning(
+                    "total_amount permanece NaN en %s filas porque subtotal está ausente. Revisar calidad de datos.",
+                    still_nan.sum(),
+                )
         return df
 
     def validate_cleaned_data(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
