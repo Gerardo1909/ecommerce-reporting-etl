@@ -2,8 +2,6 @@
 Módulo que se encarga del enriquecimiento de la tabla "reviews" para posterior análisis.
 """
 
-from typing import Optional
-
 import pandas as pd
 
 from transform.cleaners.reviews_cleaner import ReviewsCleaner
@@ -23,25 +21,23 @@ class ReviewsEnricher:
     def enrich(
         self,
         reviews_df: pd.DataFrame,
-        products_df: Optional[pd.DataFrame] = None,
-        customers_df: Optional[pd.DataFrame] = None,
+        products_df: pd.DataFrame,
+        customers_df: pd.DataFrame,
     ) -> pd.DataFrame:
         """
         Ejecuta el pipeline de enriquecimiento y devuelve tabla de reviews lista para análisis de agregación.
         """
-        self.logger.info("Iniciando enriquecimiento de reviews")
+        self.logger.info("Iniciando enriquecimiento de tabla 'reviews'")
         reviews_df = self._validate_and_clean_reviews(reviews_df)
 
-        if products_df is not None:
-            reviews_df = self._join_products(reviews_df, products_df)
-        if customers_df is not None:
-            reviews_df = self._join_customers(reviews_df, customers_df)
+        enriched_df = self._join_products(reviews_df, products_df)
+        enriched_df = self._join_customers(enriched_df, customers_df)
+        enriched_df = self._add_derived_columns(enriched_df)
 
-        reviews_df = self._add_derived_columns(reviews_df)
         self.logger.info(
-            "Enriquecimiento de reviews completado: %s filas", len(reviews_df)
+            "Enriquecimiento de tabla 'reviews' completado: %s filas", len(enriched_df)
         )
-        return reviews_df
+        return enriched_df
 
     def _validate_and_clean_reviews(self, reviews_df: pd.DataFrame) -> pd.DataFrame:
         validator = SchemaValidator(reviews_df)
