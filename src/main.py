@@ -2,8 +2,6 @@
 Punto de entrada principal para el proceso ETL.
 
 Orquesta las etapas de extracción, transformación y carga.
-En esta rama no se persiste a disco; se imprimen resultados intermedios
-y se deja el esqueleto de carga a data/processed.
 """
 
 from pathlib import Path
@@ -44,15 +42,9 @@ def extract_stage(raw_dir: Path) -> Dict[str, pd.DataFrame]:
     extract_logger.info("Iniciando extracción desde %s", raw_dir)
 
     tables = {
-        "orders": _extract("ecommerce_orders.csv", parse_dates=["order_date"]),
-        "order_items": _extract("ecommerce_order_items.csv"),
-        "customers": _extract(
-            "ecommerce_customers.csv", parse_dates=["registration_date"]
-        ),
-    }
-
-    # Tablas opcionales (si faltan, se ignoran en enriquecimiento)
-    optional_files = {
+        "orders": ("ecommerce_orders.csv", ["order_date"]),
+        "order_items": ("ecommerce_order_items.csv", None),
+        "customers": ("ecommerce_customers.csv", ["registration_date"]),
         "promotions": ("ecommerce_promotions.csv", None),
         "products": ("ecommerce_products.csv", None),
         "categories": ("ecommerce_categories.csv", None),
@@ -62,12 +54,8 @@ def extract_stage(raw_dir: Path) -> Dict[str, pd.DataFrame]:
         "warehouses": ("ecommerce_warehouses.csv", None),
     }
 
-    for key, (filename, parse_dates) in optional_files.items():
-        try:
-            tables[key] = _extract(filename, parse_dates=parse_dates)
-        except FileNotFoundError:
-            extract_logger.warning("Archivo opcional no encontrado: %s", filename)
-            tables[key] = None
+    for key, (filename, parse_dates) in tables.items():
+        tables[key] = _extract(filename, parse_dates=parse_dates)
 
     return tables
 
@@ -81,34 +69,30 @@ def transform_stage(tables: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
     enriched_orders = orders_enricher.enrich(
         orders_df=tables["orders"],
         customers_df=tables["customers"],
-        promotions_df=tables.get("promotions"),
+        promotions_df=tables["promotions"],
         order_items_df=tables["order_items"],
-        products_df=tables.get("products"),
-        categories_df=tables.get("categories"),
-        brands_df=tables.get("brands"),
+        products_df=tables["products"],
+        categories_df=tables["categories"],
+        brands_df=tables["brands"],
     )
 
-    # Inventario (opcional)
-    enriched_inventory: Optional[pd.DataFrame] = None
-    if tables.get("inventory") is not None:
-        inventory_cleaner = InventoryCleaner()
-        inventory_enricher = InventoryEnricher(inventory_cleaner)
-        enriched_inventory = inventory_enricher.enrich(
-            inventory_df=tables["inventory"],
-            products_df=tables.get("products"),
-            warehouses_df=tables.get("warehouses"),
-        )
+    # Inventario
+    inventory_cleaner = InventoryCleaner()
+    inventory_enricher = InventoryEnricher(inventory_cleaner)
+    enriched_inventory = inventory_enricher.enrich(
+        inventory_df=tables["inventory"],
+        products_df=tables["products"],
+        warehouses_df=tables["warehouses"],
+    )
 
-    # Reviews (opcional)
-    enriched_reviews: Optional[pd.DataFrame] = None
-    if tables.get("reviews") is not None:
-        reviews_cleaner = ReviewsCleaner()
-        reviews_enricher = ReviewsEnricher(reviews_cleaner)
-        enriched_reviews = reviews_enricher.enrich(
-            reviews_df=tables["reviews"],
-            products_df=tables.get("products"),
-            customers_df=tables.get("customers"),
-        )
+    # Reviews
+    reviews_cleaner = ReviewsCleaner()
+    reviews_enricher = ReviewsEnricher(reviews_cleaner)
+    enriched_reviews = reviews_enricher.enrich(
+        reviews_df=tables["reviews"],
+        products_df=tables["products"],
+        customers_df=tables["customers"],
+    )
 
     return {
         "orders": enriched_orders,
@@ -118,11 +102,13 @@ def transform_stage(tables: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
 
 
 def aggregate_stage(
-    enriched: Dict[str, Optional[pd.DataFrame]], tables: Dict[str, pd.DataFrame]
+    enriched: Dict[str, pd.DataFrame], tables: Dict[str, pd.DataFrame]
 ) -> Dict[str, pd.DataFrame]:
     """Genera métricas de negocio a partir de datasets enriquecidos."""
 
     enriched_orders = enriched["orders"]
+    enriched_inventory = enriched["inventory"]
+    enriched_reviews = enriched["reviews"]
 
     customer_agg = CustomerAnalyticsAggregator()
     product_agg = ProductAnalyticsAggregator()
@@ -143,7 +129,7 @@ def aggregate_stage(
         ),
         "top_products": product_agg.top_products_by_quantity(
             order_items_df=tables["order_items"],
-            products_df=tables.get("products"),  # TODO: ver
+            products_df=tables.get("products"),
             top_n=10,
         ),
         "monthly_sales": sales_agg.monthly_sales(enriched_orders),
@@ -158,29 +144,17 @@ def aggregate_stage(
             {"delivery_rate": [lifecycle_agg.delivery_rate(enriched_orders)]}
         ),
         "backlog_in_progress": lifecycle_agg.in_progress_backlog(enriched_orders),
+        "inventory_health": inventory_agg.stock_health_summary(enriched_inventory),
+        "low_stock_items": inventory_agg.low_stock_items(enriched_inventory, top_n=20),
+        "warehouse_utilization": inventory_agg.warehouse_utilization(
+            enriched_inventory
+        ),
+        "reviews_overview": review_agg.rating_overview(enriched_reviews),
+        "reviews_by_product": review_agg.rating_by_product(
+            enriched_reviews, min_reviews=3, top_n=20
+        ),
+        "reviews_monthly": review_agg.monthly_review_volume(enriched_reviews),
     }
-
-    if enriched.get("inventory") is not None:
-        inv = enriched["inventory"]
-        results.update(
-            {
-                "inventory_health": inventory_agg.stock_health_summary(inv),
-                "low_stock_items": inventory_agg.low_stock_items(inv, top_n=20),
-                "warehouse_utilization": inventory_agg.warehouse_utilization(inv),
-            }
-        )
-
-    if enriched.get("reviews") is not None:
-        rev = enriched["reviews"]
-        results.update(
-            {
-                "reviews_overview": review_agg.rating_overview(rev),
-                "reviews_by_product": review_agg.rating_by_product(
-                    rev, min_reviews=3, top_n=20
-                ),
-                "reviews_monthly": review_agg.monthly_review_volume(rev),
-            }
-        )
 
     return results
 
