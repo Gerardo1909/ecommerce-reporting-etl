@@ -13,7 +13,7 @@ from utils.validators import SchemaValidator
 
 class OrdersCleaner(DataCleaner):
     """
-    Clase que implementa lógica de negocio especifica para limpiar tabla "orders".
+    Clase que implementa lógica de negocio específica para limpiar tabla "orders".
     """
 
     REQUIRED_COLUMNS: List[str] = [

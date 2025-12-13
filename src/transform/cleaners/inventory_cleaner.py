@@ -11,7 +11,7 @@ from utils.validators import SchemaValidator
 
 class InventoryCleaner(DataCleaner):
     """
-    Clase que implementa lógica de negocio especifica para limpiar tabla "inventory".
+    Clase que implementa lógica de negocio específica para limpiar tabla "inventory".
     """
 
     REQUIRED_COLUMNS = [

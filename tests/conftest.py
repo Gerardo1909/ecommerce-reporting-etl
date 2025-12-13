@@ -415,7 +415,7 @@ def raw_orders_dirty() -> pd.DataFrame:
 
 @pytest.fixture
 def raw_orders_missing_total_amount() -> pd.DataFrame:
-    """Órdenes con nulos y tipos mezclados para probar calculo de total_amount."""
+    """Órdenes con nulos y tipos mezclados para probar cálculo de total_amount."""
     return pd.DataFrame(
         {
             "order_id": [1, 2, 3],

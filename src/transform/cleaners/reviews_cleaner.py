@@ -11,7 +11,7 @@ from utils.validators import SchemaValidator
 
 class ReviewsCleaner(DataCleaner):
     """
-    Clase que implementa lógica de negocio especifica para limpiar tabla "reviews".
+    Clase que implementa lógica de negocio específica para limpiar tabla "reviews".
     """
 
     REQUIRED_COLUMNS = [
