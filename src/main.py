@@ -2,10 +2,12 @@
 Punto de entrada principal para el proceso ETL.
 
 Orquesta las etapas de extracción, transformación y carga.
+
+# TODO: pensar en una mejor estructura para el orquestador (Cron, excepciones, retries, alertas, etc.)
 """
 
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict
 
 import pandas as pd
 
@@ -32,35 +34,24 @@ PROCESSED_DIR = Path(__file__).resolve().parent.parent / "data" / "processed"
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "output"
 
 
-def extract_stage(raw_dir: Path) -> Dict[str, pd.DataFrame]:
+def extract_stage() -> Dict[str, pd.DataFrame]:
     """Extrae los datasets necesarios desde CSV."""
-
-    def _extract(filename: str, parse_dates: Optional[list] = None) -> pd.DataFrame:
-        extractor = CSVExtractor(
-            file_path=raw_dir / filename,
-            parse_dates=parse_dates or [],
-            auto_profile=False,
-        )
-        return extractor.extract()
-
-    extract_logger.info("Iniciando extracción desde %s", raw_dir)
-
+    csv_raw = CSVExtractor(source_path=RAW_DATA_DIR)
+    extract_logger.info("Iniciando extracción desde %s", RAW_DATA_DIR)
     tables = {
-        "orders": ("ecommerce_orders.csv", ["order_date"]),
-        "order_items": ("ecommerce_order_items.csv", None),
-        "customers": ("ecommerce_customers.csv", ["registration_date"]),
-        "promotions": ("ecommerce_promotions.csv", None),
-        "products": ("ecommerce_products.csv", None),
-        "categories": ("ecommerce_categories.csv", None),
-        "brands": ("ecommerce_brands.csv", None),
-        "reviews": ("ecommerce_reviews.csv", ["created_at"]),
-        "inventory": ("ecommerce_inventory.csv", None),
-        "warehouses": ("ecommerce_warehouses.csv", None),
+        "orders": "ecommerce_orders",
+        "order_items": "ecommerce_order_items",
+        "customers": "ecommerce_customers",
+        "promotions": "ecommerce_promotions",
+        "products": "ecommerce_products",
+        "categories": "ecommerce_categories",
+        "brands": "ecommerce_brands",
+        "reviews": "ecommerce_reviews",
+        "inventory": "ecommerce_inventory",
+        "warehouses": "ecommerce_warehouses",
     }
-
-    for key, (filename, parse_dates) in tables.items():
-        tables[key] = _extract(filename, parse_dates=parse_dates)
-
+    for key, filename in tables.items():
+        tables[key] = csv_raw.extract(name=filename)
     return tables
 
 
@@ -168,7 +159,7 @@ def load_stage(
     # Loaders para formato Parquet
     parquet_processed = ParquetLoader(target_path=PROCESSED_DIR)
     parquet_outputs = ParquetLoader(target_path=OUTPUT_DIR)
-    
+
     # Loaders para formato CSV
     csv_processed = CSVLoader(target_path=PROCESSED_DIR)
     csv_outputs = CSVLoader(target_path=OUTPUT_DIR)
@@ -193,7 +184,6 @@ def preview_results(results: Dict[str, pd.DataFrame]) -> None:
     """Imprime en consola una vista corta de cada resultado."""
 
     for name, df in results.items():
-        transform_logger.info("Resultado '%s' (primeras filas):", name)
         print("\n===", name, "===")
         print(df.head())
 
@@ -201,7 +191,7 @@ def preview_results(results: Dict[str, pd.DataFrame]) -> None:
 def main() -> None:
     """Orquesta el flujo ETL."""
 
-    tables = extract_stage(RAW_DATA_DIR)
+    tables = extract_stage()
     enriched = transform_stage(tables)
     results = aggregate_stage(enriched, tables)
 

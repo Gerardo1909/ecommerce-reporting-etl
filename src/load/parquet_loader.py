@@ -89,7 +89,7 @@ class ParquetLoader(BaseLoader):
         """
         Verifica que el destino de datos especificada existe.
 
-        Params:
+        Args:
             target_location (Path): Ubicación o identificador del destino
 
         Raises:
@@ -110,7 +110,7 @@ class ParquetLoader(BaseLoader):
 
         Mide el tamaño del archivo parquet resultante en megabytes y actualiza el timestamp de carga.
 
-        Params:
+        Args:
             after_load_info (Path): Ruta al archivo Parquet guardado
         """
         file_size_mb = round(after_load_info.stat().st_size / 1024**2, 2)

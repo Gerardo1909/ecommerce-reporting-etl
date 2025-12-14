@@ -34,7 +34,7 @@ class BaseLoader(ABC):
         """
         Carga datos hacia el destino.
 
-        Params:
+        Args:
             df (pd.DataFrame): DataFrame con los datos a cargar
             name (str): Nombre o identificador para el destino
         """
@@ -55,7 +55,7 @@ class BaseLoader(ABC):
         """
         Verifica que el destino de datos especificada existe.
 
-        Params:
+        Args:
             target_location (Any): Ubicación o identificador del destino
 
         Raises:
