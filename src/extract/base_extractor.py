@@ -78,7 +78,7 @@ class BaseExtractor(ABC):
             "column_names": list(df.columns),
             "missing_values": int(df.isnull().sum().sum()),
             "missing_percentage": round(
-                (df.isnull().sum().sum() / (df.shape[0] * df.shape[1])) * 100,
+                (df.isnull().sum().sum() / max(df.shape[0] * df.shape[1], 1)) * 100,
                 2,
             ),
             "dtypes": df.dtypes.astype(str).to_dict(),
