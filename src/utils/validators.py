@@ -2,11 +2,10 @@
 Validadores de schema y calidad de datos
 """
 
-from typing import List, Dict, Optional
+import logging
+from typing import Dict, List, Optional
 
 import pandas as pd
-
-from utils.logger import extract_logger
 
 
 class SchemaValidator:
@@ -15,34 +14,18 @@ class SchemaValidator:
 
     Proporciona métodos para validar columnas requeridas, tipos de datos,
     y otras restricciones de schema en DataFrames de pandas.
-
-    Ejemplo de uso:
-        validator = SchemaValidator(df)
-
-        # Validar columnas requeridas
-        validator.validate_required_columns(['id', 'name', 'price'])
-
-        # Validar tipos de datos
-        expected_types = {
-            'id': 'int64',
-            'name': 'object',
-            'price': 'float64'
-        }
-        validator.validate_data_types(expected_types)
-
-        # Validar rangos numéricos
-        validator.validate_numeric_range('price', min_value=0)
     """
 
-    def __init__(self, dataframe: pd.DataFrame):
+    def __init__(self, dataframe: pd.DataFrame, logger: logging.Logger):
         """
         Inicializa el validador con un DataFrame.
 
         Args:
+            logger: Logger para registrar mensajes de validación en la etapa correspondiente
             dataframe: DataFrame a validar
         """
         self.df = dataframe
-        self.logger = extract_logger
+        self.logger = logger
 
     def validate_required_columns(self, required_columns: List[str]) -> bool:
         """
