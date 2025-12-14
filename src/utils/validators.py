@@ -21,8 +21,8 @@ class SchemaValidator:
         Inicializa el validador con un DataFrame.
 
         Args:
-            logger: Logger para registrar mensajes de validación en la etapa correspondiente
             dataframe: DataFrame a validar
+            logger: Logger para registrar mensajes de validación en la etapa correspondiente
         """
         self.df = dataframe
         self.logger = logger
