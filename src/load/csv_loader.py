@@ -86,7 +86,7 @@ class CSVLoader(BaseLoader):
         """
         Verifica que el destino de datos especificada existe.
 
-        Params:
+        Args:
             target_location (Path): Ubicación o identificador del destino
 
         Raises:
@@ -107,7 +107,7 @@ class CSVLoader(BaseLoader):
 
         Mide el tamaño del archivo csv resultante en megabytes y actualiza el timestamp de carga.
 
-        Params:
+        Args:
             after_load_info (Path): Ruta al archivo CSV guardado
         """
         file_size_mb = round(after_load_info.stat().st_size / 1024**2, 2)
