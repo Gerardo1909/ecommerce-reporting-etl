@@ -22,10 +22,14 @@ from transform.aggregators.sales_analytics import SalesAnalyticsAggregator
 from transform.aggregators.inventory_analytics import InventoryAnalyticsAggregator
 from transform.aggregators.review_analytics import ReviewAnalyticsAggregator
 from transform.aggregators.order_lifecycle import OrderLifecycleAggregator
+from load.csv_loader import CSVLoader
+from load.parquet_loader import ParquetLoader
 from utils.logger import extract_logger, transform_logger, load_logger
 
 
 RAW_DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "raw"
+PROCESSED_DIR = Path(__file__).resolve().parent.parent / "data" / "processed"
+OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "output"
 
 
 def extract_stage(raw_dir: Path) -> Dict[str, pd.DataFrame]:
@@ -70,7 +74,7 @@ def transform_stage(tables: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
         orders_df=tables["orders"],
         customers_df=tables["customers"],
         promotions_df=tables["promotions"],
-        order_items_df=tables["order_items"]
+        order_items_df=tables["order_items"],
     )
 
     # Inventario
@@ -156,6 +160,35 @@ def aggregate_stage(
     return results
 
 
+def load_stage(
+    enriched: Dict[str, pd.DataFrame], results: Dict[str, pd.DataFrame]
+) -> None:
+    """Guarda datasets enriquecidos y agregaciones en disco."""
+
+    # Loaders para formato Parquet
+    parquet_processed = ParquetLoader(target_path=PROCESSED_DIR)
+    parquet_outputs = ParquetLoader(target_path=OUTPUT_DIR)
+    
+    # Loaders para formato CSV
+    csv_processed = CSVLoader(target_path=PROCESSED_DIR)
+    csv_outputs = CSVLoader(target_path=OUTPUT_DIR)
+
+    # Datasets principales enriquecidos en formato Parquet
+    parquet_processed.save(enriched["orders"], name="orders_enriched")
+    parquet_processed.save(enriched["inventory"], name="inventory_enriched")
+    parquet_processed.save(enriched["reviews"], name="reviews_enriched")
+
+    # Datasets principales enriquecidos en formato csv
+    csv_processed.save(enriched["orders"], name="orders_enriched")
+    csv_processed.save(enriched["inventory"], name="inventory_enriched")
+    csv_processed.save(enriched["reviews"], name="reviews_enriched")
+
+    # Resultados agregados
+    for result_name, df in results.items():
+        parquet_outputs.save(df, name=result_name)
+        csv_outputs.save(df, name=result_name)
+
+
 def preview_results(results: Dict[str, pd.DataFrame]) -> None:
     """Imprime en consola una vista corta de cada resultado."""
 
@@ -166,7 +199,7 @@ def preview_results(results: Dict[str, pd.DataFrame]) -> None:
 
 
 def main() -> None:
-    """Orquesta el flujo ETL (sin carga persistente)."""
+    """Orquesta el flujo ETL."""
 
     tables = extract_stage(RAW_DATA_DIR)
     enriched = transform_stage(tables)
@@ -174,16 +207,7 @@ def main() -> None:
 
     preview_results(results)
 
-    # TODO: carga (ejemplo futuro)
-    # from load.parquet_loader import ParquetLoader
-    # base_dir = Path(__file__).resolve().parent.parent / "data"
-    # processed_dir = base_dir / "processed"
-    # output_dir = base_dir / "output"
-    # loader_processed = ParquetLoader(output_dir=processed_dir, logger=load_logger)
-    # loader_output = ParquetLoader(output_dir=output_dir, logger=load_logger)
-    # loader_processed.save(enriched_orders, "orders_enriched")
-    # for name, df in results.items():
-    #     loader_output.save(df, name)
+    load_stage(enriched, results)
 
 
 if __name__ == "__main__":
