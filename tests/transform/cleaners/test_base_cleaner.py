@@ -1,6 +1,7 @@
 """
 Pruebas unitarias para DataCleaner base y utilidades comunes.
-Valida el llenado de columnas numéricas con estrategias de nulos.
+
+Verifica las estrategias de llenado de nulos disponibles en el limpiador base.
 """
 
 import pytest
@@ -11,28 +12,43 @@ from transform.cleaners.base_cleaner import DataCleaner, NullStrategy
 
 
 class _DummyCleaner(DataCleaner):
-    """Implementación mínima para probar comportamientos genéricos del limpiador."""
+    """
+    Implementación mínima para probar comportamientos genéricos del limpiador.
 
-    def handle_nulls(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+    Los métodos abstractos retornan el DataFrame sin modificar para
+    permitir el testing de utilidades de la clase base.
+    """
+
+    def handle_nulls(self, df: pd.DataFrame) -> pd.DataFrame:
         return df
 
-    def handle_duplicates(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+    def handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
         return df
 
-    def convert_types(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+    def convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
         return df
 
-    def validate_cleaned_data(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+    def validate_cleaned_data(self, df: pd.DataFrame) -> pd.DataFrame:
         return df
 
 
 @pytest.mark.unit
 @pytest.mark.transform
 class TestBaseCleanerFillColumn:
-    """Tests de `_fill_column` para asegurar estrategias de rellenado numérico."""
+    """
+    Tests de _fill_column para asegurar estrategias de rellenado numérico.
+
+    Verifica que cada estrategia de NullStrategy se aplique correctamente
+    a columnas con valores nulos.
+    """
 
     def test_fill_column_should_apply_zero_and_mean_when_strategies_are_set(self):
-        """Debe rellenar con cero o con la media según la estrategia configurada."""
+        """
+        Debe rellenar con cero o con la media según la estrategia configurada.
+
+        Escenario: Columna 'a' con nulo rellena con cero,
+        columna 'b' con nulo rellena con la media de valores no nulos.
+        """
         cleaner = _DummyCleaner()
         df = pd.DataFrame({"a": [1.0, None, 3.0], "b": [None, 2.0, 4.0]})
 

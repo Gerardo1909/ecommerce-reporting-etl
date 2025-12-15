@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from exceptions import LoadWriteError, TargetNameNotSpecifiedError, TargetNotFoundError
 from load.base_loader import BaseLoader
 
 
@@ -19,7 +20,7 @@ class CSVLoader(BaseLoader):
 
     def __init__(
         self,
-        target_path: Path,
+        target_path: str,
         encoding: str = "utf-8",
         sep: str = ",",
         index: bool = False,
@@ -28,7 +29,7 @@ class CSVLoader(BaseLoader):
         Inicializa el loader de CSV.
 
         Args:
-            target_path: Ruta al archivo CSV de destino
+            target_path: Directorio base donde se guardaran los archivos CSV
             encoding: Codificación del archivo (default: 'utf-8')
             sep: Separador de columnas (default: ',')
             index: Incluir índice en el archivo (default: False)
@@ -37,7 +38,7 @@ class CSVLoader(BaseLoader):
             TargetNotFoundError: Si el directorio de destino no existe
         """
         super().__init__()
-        self._validate_target_exists(target_path)
+        self._validate_target_exists(Path(target_path))
         self.target_path = Path(target_path)
         self.target_description = str(self.target_path)
         self.encoding = encoding
@@ -58,12 +59,14 @@ class CSVLoader(BaseLoader):
         Carga datos hacia un archivo CSV.
 
         Raises:
-            ValueError: Si el nombre del archivo está vacío
-            Exception: Para otros errores durante la extracción
+            TargetNameNotSpecifiedError: Si el nombre del archivo está vacío
+            LoadWriteError: Si ocurre un error durante la escritura
         """
 
         if not name:
-            raise ValueError("El parámetro 'name' no puede estar vacío.")
+            raise TargetNameNotSpecifiedError(
+                logger=self.logger, loader_type="CSVLoader"
+            )
 
         target_path = self.target_path / f"{name}.csv"
 
@@ -73,14 +76,48 @@ class CSVLoader(BaseLoader):
             df.to_csv(
                 target_path, index=self.save_index, encoding=self.encoding, sep=self.sep
             )
+        except PermissionError as exc:
+            raise LoadWriteError(
+                str(target_path),
+                logger=self.logger,
+                original_error=exc,
+                context={
+                    "rows": len(df),
+                    "columns": len(df.columns),
+                    "encoding": self.encoding,
+                    "reason": "Permiso denegado",
+                },
+            ) from exc
+        except OSError as exc:
+            raise LoadWriteError(
+                str(target_path),
+                logger=self.logger,
+                original_error=exc,
+                context={
+                    "rows": len(df),
+                    "columns": len(df.columns),
+                    "encoding": self.encoding,
+                    "reason": "Error de sistema de archivos",
+                },
+            ) from exc
         except Exception as exc:
-            self.logger.error("Error al guardar CSV en %s: %s", target_path, exc)
-            raise
+            raise LoadWriteError(
+                str(target_path),
+                logger=self.logger,
+                original_error=exc,
+                context={
+                    "rows": len(df),
+                    "columns": len(df.columns),
+                    "encoding": self.encoding,
+                },
+            ) from exc
+
         self._profile_data_after_load(target_path)
 
         # Una vez el profiling completo se ha hecho, se puede loguear el resumen
         summary = self.get_summary()
-        self.logger.info(f"Datos guardados en {target_path}:\n{summary}")
+        success_msg = f"Archivo CSV guardado en {target_path}:\n{summary}"
+        self.logger.info(success_msg)
 
     def _validate_target_exists(self, target_location: Path) -> None:
         """
@@ -93,10 +130,9 @@ class CSVLoader(BaseLoader):
             TargetNotFoundError: Si el destino no existe
         """
         if not target_location.exists():
-            error_msg = f"Directorio de destino no existe: {target_location}"
-            self.logger.error(error_msg)
-            raise FileNotFoundError(error_msg)
-
+            raise TargetNotFoundError(
+                str(target_location), logger=self.logger, target_type="directorio"
+            )
         success_msg = f"Directorio de destino encontrado: {target_location}"
         self.logger.info(success_msg)
         print(success_msg)

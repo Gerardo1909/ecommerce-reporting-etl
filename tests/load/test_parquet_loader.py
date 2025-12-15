@@ -1,5 +1,13 @@
 """
 Pruebas unitarias para loader de Parquet.
+
+Verifica la correcta carga de DataFrames a archivos Parquet incluyendo:
+- Guardado exitoso con compresión y generación de metadata
+- Validaciones de entrada (nombre vacío, directorio destino inexistente)
+
+Las pruebas utilizan excepciones personalizadas del módulo exceptions:
+- TargetNameNotSpecifiedError: nombre de archivo vacío
+- TargetNotFoundError: directorio destino no encontrado
 """
 
 from pathlib import Path
@@ -8,24 +16,36 @@ import pandas as pd
 import pytest
 import pytest_check as check
 
+from exceptions import TargetNameNotSpecifiedError, TargetNotFoundError
 from load.parquet_loader import ParquetLoader
 
 
 class TestParquetLoaderSave:
     """
     Tests para el guardado del ParquetLoader.
-    Valida que se guarde correctamente el archivo Parquet y se actualice la metadata.
+    
+    Verifica la creación correcta del archivo Parquet con compresión
+    y la actualización de metadata incluyendo dimensiones y timestamps.
     """
-    def test_save_should_create_parquet_and_metadata_when_dataframe_valid(self, tmp_path: Path, sample_valid_dataframe: pd.DataFrame) -> None:
+
+    def test_save_should_create_parquet_and_metadata_when_dataframe_valid(
+        self, tmp_path: Path, sample_valid_dataframe: pd.DataFrame
+    ) -> None:
         """
-        Debe crear archivo Parquet y metadata cuando el DataFrame es válido.
+        Debe crear archivo Parquet y actualizar metadata cuando el DataFrame es válido.
+        
+        Verifica que el archivo se cree con compresión snappy, contenga los datos
+        esperados y que la metadata refleje las características del guardado.
         """
-        loader = ParquetLoader(target_path=tmp_path, compression="snappy", index=False, engine="pyarrow")       
+        loader = ParquetLoader(
+            target_path=tmp_path, compression="snappy", index=False, engine="pyarrow"
+        )
         loader.save(sample_valid_dataframe, name="orders_enriched")
 
         target_file = tmp_path / "orders_enriched.parquet"
         loaded = pd.read_parquet(target_file)
         metadata = loader.metadata
+        
         check.is_true(target_file.exists())
         check.equal(len(loaded), len(sample_valid_dataframe))
         check.is_true(set(loaded.columns) == set(sample_valid_dataframe.columns))
@@ -41,23 +61,37 @@ class TestParquetLoaderSave:
 class TestParquetLoaderValidation:
     """
     Tests para validaciones del ParquetLoader.
-    Valida que se lancen errores apropiados para entradas inválidas.
+    
+    Verifica que se lancen las excepciones personalizadas apropiadas:
+    - TargetNameNotSpecifiedError: cuando el nombre del archivo está vacío
+    - TargetNotFoundError: cuando el directorio destino no existe
     """
-    def test_save_should_raise_valueerror_when_name_empty(self, tmp_path: Path, sample_valid_dataframe: pd.DataFrame) -> None:
-        """   
-        Debe lanzar ValueError cuando el nombre está vacío.
+
+    def test_save_should_raise_target_name_not_specified_when_name_empty(
+        self, tmp_path: Path, sample_valid_dataframe: pd.DataFrame
+    ) -> None:
+        """
+        Debe lanzar TargetNameNotSpecifiedError cuando el nombre está vacío.
+        
+        Valida que el loader rechace nombres vacíos con la excepción específica,
+        facilitando el diagnóstico de errores en pipelines de carga.
         """
         loader = ParquetLoader(target_path=tmp_path)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(TargetNameNotSpecifiedError):
             loader.save(sample_valid_dataframe, name="")
 
-    def test_init_should_raise_filenotfounderror_when_target_missing(self, tmp_path: Path) -> None:
+    def test_init_should_raise_target_not_found_when_directory_missing(
+        self, tmp_path: Path
+    ) -> None:
         """
-        Debe lanzar FileNotFoundError cuando la ruta objetivo no existe.
+        Debe lanzar TargetNotFoundError cuando el directorio destino no existe.
+        
+        Verifica que el constructor valide la existencia del directorio
+        antes de permitir cualquier operación de carga.
         """
         missing_dir = tmp_path / "does_not_exist"
 
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(TargetNotFoundError):
             ParquetLoader(target_path=missing_dir)
    

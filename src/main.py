@@ -12,9 +12,6 @@ from typing import Dict
 import pandas as pd
 
 from extract.csv_extractor import CSVExtractor
-from transform.cleaners.orders_cleaner import OrdersCleaner
-from transform.cleaners.inventory_cleaner import InventoryCleaner
-from transform.cleaners.reviews_cleaner import ReviewsCleaner
 from transform.enrichers.orders_enricher import OrdersEnricher
 from transform.enrichers.inventory_enricher import InventoryEnricher
 from transform.enrichers.reviews_enricher import ReviewsEnricher
@@ -26,18 +23,16 @@ from transform.aggregators.review_analytics import ReviewAnalyticsAggregator
 from transform.aggregators.order_lifecycle import OrderLifecycleAggregator
 from load.csv_loader import CSVLoader
 from load.parquet_loader import ParquetLoader
-from utils.logger import extract_logger, transform_logger, load_logger
 
 
-RAW_DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "raw"
-PROCESSED_DIR = Path(__file__).resolve().parent.parent / "data" / "processed"
-OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data" / "output"
+RAW_DATA_DIR = str(Path(__file__).resolve().parent.parent / "data" / "raw")
+PROCESSED_DIR = str(Path(__file__).resolve().parent.parent / "data" / "processed")
+OUTPUT_DIR = str(Path(__file__).resolve().parent.parent / "data" / "output")
 
 
 def extract_stage() -> Dict[str, pd.DataFrame]:
     """Extrae los datasets necesarios desde CSV."""
     csv_raw = CSVExtractor(source_path=RAW_DATA_DIR)
-    extract_logger.info("Iniciando extracción desde %s", RAW_DATA_DIR)
     tables = {
         "orders": "ecommerce_orders",
         "order_items": "ecommerce_order_items",
@@ -59,8 +54,7 @@ def transform_stage(tables: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
     """Limpia y enriquece datasets disponibles."""
 
     # Órdenes
-    orders_cleaner = OrdersCleaner()
-    orders_enricher = OrdersEnricher(orders_cleaner)
+    orders_enricher = OrdersEnricher()
     enriched_orders = orders_enricher.enrich(
         orders_df=tables["orders"],
         customers_df=tables["customers"],
@@ -69,8 +63,7 @@ def transform_stage(tables: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
     )
 
     # Inventario
-    inventory_cleaner = InventoryCleaner()
-    inventory_enricher = InventoryEnricher(inventory_cleaner)
+    inventory_enricher = InventoryEnricher()
     enriched_inventory = inventory_enricher.enrich(
         inventory_df=tables["inventory"],
         products_df=tables["products"],
@@ -78,8 +71,7 @@ def transform_stage(tables: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
     )
 
     # Reviews
-    reviews_cleaner = ReviewsCleaner()
-    reviews_enricher = ReviewsEnricher(reviews_cleaner)
+    reviews_enricher = ReviewsEnricher()
     enriched_reviews = reviews_enricher.enrich(
         reviews_df=tables["reviews"],
         products_df=tables["products"],
@@ -121,7 +113,7 @@ def aggregate_stage(
         ),
         "top_products": product_agg.top_products_by_quantity(
             order_items_df=tables["order_items"],
-            products_df=tables.get("products"),
+            products_df=tables["products"],
             top_n=10,
         ),
         "monthly_sales": sales_agg.monthly_sales(enriched_orders),
