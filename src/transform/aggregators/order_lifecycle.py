@@ -12,47 +12,56 @@ class OrderLifecycleAggregator:
     Calcula métricas de estado de órdenes: funnel por status, cancelación, entregas y backlog.
     """
 
-    def __init__(self, logger=transform_logger):
-        self.logger = logger
+    def __init__(self):
+        self.logger = transform_logger
 
-    def status_funnel(self, orders_df: pd.DataFrame) -> pd.DataFrame:
+    def status_funnel(self, enriched_orders_df: pd.DataFrame) -> pd.DataFrame:
         """
         Cuenta órdenes por status, calcula la participación de cada estado y devuelve el funnel
         ordenado con totales y proporciones.
+
+        Args:
+            enriched_orders_df: DataFrame de órdenes enriquecidas
+
+        Returns:
+            DataFrame con conteo y participación por estado de órdenes
         """
-        if "status" not in orders_df.columns:
-            return pd.DataFrame()
-        counts = orders_df["status"].value_counts().reset_index()
+        counts = enriched_orders_df["status"].value_counts().reset_index()
         counts.columns = ["status", "orders"]
         total = counts["orders"].sum()
         counts["share"] = counts["orders"] / total if total else 0
         self.logger.info("Funnel por estado generado: %s estados", len(counts))
         return counts
 
-    def cancellation_rate(self, orders_df: pd.DataFrame) -> float:
+    def cancellation_rate(self, enriched_orders_df: pd.DataFrame) -> float:
         """
-        Calcula la tasa de cancelación sobre el total de órdenes disponibles; retorna 0.0 si
-        no hay columna de estado o no existen registros.
+        Calcula la tasa de cancelación sobre el total de órdenes disponibles.
+
+        Args:
+            enriched_orders_df: DataFrame de órdenes enriquecidas
+
+        Returns:
+            Tasa de cancelación como float
         """
-        if "status" not in orders_df.columns or orders_df.empty:
-            return 0.0
-        rate = (orders_df["status"].str.lower() == "cancelled").mean()
+        rate = (enriched_orders_df["status"].str.lower() == "cancelled").mean()
         self.logger.info("Tasa de cancelación: %.2f", rate)
         return float(rate)
 
-    def in_progress_backlog(self, orders_df: pd.DataFrame) -> pd.DataFrame:
+    def in_progress_backlog(self, enriched_orders_df: pd.DataFrame) -> pd.DataFrame:
         """
         Filtra órdenes en curso (pending, processing, shipped), agrega backlog por mes en conteo
         y valor total, y devuelve la serie temporal ordenada.
+
+        Args:
+            enriched_orders_df: DataFrame de órdenes enriquecidas
+
+        Returns:
+            DataFrame con backlog en progreso por mes
         """
-        if "status" not in orders_df.columns:
-            return pd.DataFrame()
         in_progress_status = {"pending", "processing", "shipped"}
-        filtered = orders_df[
-            orders_df["status"].str.lower().isin(in_progress_status)
+        filtered = enriched_orders_df[
+            enriched_orders_df["status"].str.lower().isin(in_progress_status)
         ].copy()
-        if "order_month" not in filtered.columns and "order_date" in filtered.columns:
-            filtered["order_month"] = filtered["order_date"].dt.to_period("M")
         grouped = (
             filtered.groupby("order_month")
             .agg(
@@ -65,13 +74,16 @@ class OrderLifecycleAggregator:
         self.logger.info("Backlog en progreso calculado: %s periodos", len(grouped))
         return grouped
 
-    def delivery_rate(self, orders_df: pd.DataFrame) -> float:
+    def delivery_rate(self, enriched_orders_df: pd.DataFrame) -> float:
         """
-        Calcula la tasa de entrega sobre el total de órdenes; retorna 0.0 si falta el estado
-        o no hay registros.
+        Calcula la tasa de entrega sobre el total de órdenes.
+
+        Args:
+            enriched_orders_df: DataFrame de órdenes enriquecidas
+
+        Returns:
+            Tasa de entrega como float
         """
-        if "status" not in orders_df.columns or orders_df.empty:
-            return 0.0
-        rate = (orders_df["status"].str.lower() == "delivered").mean()
+        rate = (enriched_orders_df["status"].str.lower() == "delivered").mean()
         self.logger.info("Tasa de entrega: %.2f", rate)
         return float(rate)
