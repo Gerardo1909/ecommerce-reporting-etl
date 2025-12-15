@@ -1,5 +1,15 @@
 """
 Pruebas unitarias para extractor de CSV.
+
+Verifica la correcta extracción de archivos CSV incluyendo:
+- Lectura exitosa y generación de metadata
+- Manejo de valores nulos en profiling  
+- Validaciones de entrada (nombre vacío, archivo inexistente, directorio inexistente)
+- Configuración personalizada (encoding, separador)
+
+Las pruebas utilizan excepciones personalizadas del módulo exceptions:
+- SourceNameNotSpecifiedError: nombre de archivo vacío
+- SourceNotFoundError: archivo o directorio no encontrado
 """
 
 from pathlib import Path
@@ -8,6 +18,7 @@ import pandas as pd
 import pytest
 import pytest_check as check
 
+from exceptions import SourceNameNotSpecifiedError, SourceNotFoundError
 from extract.csv_extractor import CSVExtractor
 
 
@@ -73,57 +84,73 @@ class TestCSVExtractorExtract:
 class TestCSVExtractorValidation:
     """
     Tests para validaciones del CSVExtractor.
-    Valida que se lancen errores apropiados para entradas inválidas.
+    
+    Verifica que se lancen las excepciones personalizadas apropiadas:
+    - SourceNameNotSpecifiedError: cuando el nombre del archivo está vacío
+    - SourceNotFoundError: cuando el directorio fuente o archivo no existe
     """
 
-    def test_extract_should_raise_valueerror_when_name_empty(
+    def test_extract_should_raise_source_name_not_specified_when_name_empty(
         self, tmp_path: Path
     ) -> None:
         """
-        Debe lanzar ValueError cuando el nombre está vacío.
+        Debe lanzar SourceNameNotSpecifiedError cuando el nombre está vacío.
+        
+        Valida que el extractor rechace nombres vacíos con la excepción específica,
+        facilitando el diagnóstico de errores en pipelines ETL.
         """
-        # Crear un CSV cualquiera para que la inicialización no falle
         pd.DataFrame({"col": [1]}).to_csv(tmp_path / "dummy.csv", index=False)
 
         extractor = CSVExtractor(source_path=tmp_path)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(SourceNameNotSpecifiedError):
             extractor.extract(name="")
 
-    def test_init_should_raise_filenotfounderror_when_source_missing(
+    def test_init_should_raise_source_not_found_when_directory_missing(
         self, tmp_path: Path
     ) -> None:
         """
-        Debe lanzar FileNotFoundError cuando la ruta fuente no existe.
+        Debe lanzar SourceNotFoundError cuando el directorio fuente no existe.
+        
+        Verifica que el constructor valide la existencia del directorio
+        antes de permitir cualquier operación de extracción.
         """
         missing_dir = tmp_path / "does_not_exist"
 
-        with pytest.raises(FileNotFoundError):
+        with pytest.raises(SourceNotFoundError):
             CSVExtractor(source_path=missing_dir)
 
-    def test_extract_should_raise_exception_when_csv_not_found(
+    def test_extract_should_raise_source_not_found_when_csv_file_missing(
         self, tmp_path: Path
     ) -> None:
         """
-        Debe lanzar excepción cuando el archivo CSV especificado no existe.
+        Debe lanzar SourceNotFoundError cuando el archivo CSV especificado no existe.
+        
+        Verifica que el método extract valide la existencia del archivo
+        específico antes de intentar leerlo.
         """
         extractor = CSVExtractor(source_path=tmp_path)
 
-        with pytest.raises(Exception):
+        with pytest.raises(SourceNotFoundError):
             extractor.extract(name="nonexistent_file")
 
 
 class TestCSVExtractorConfiguration:
     """
     Tests para la configuración del CSVExtractor.
-    Valida que las opciones de configuración se apliquen correctamente.
+    
+    Verifica que las opciones de configuración (encoding, separador)
+    se almacenen correctamente en metadata y se apliquen al parsear.
     """
 
     def test_init_should_store_configuration_in_metadata_when_custom_options(
         self, tmp_path: Path
     ) -> None:
         """
-        Debe almacenar la configuración personalizada en metadata cuando se especifican opciones.
+        Debe almacenar la configuración personalizada en metadata.
+        
+        Verifica que encoding, separador y path fuente se registren
+        en la metadata para auditoría y debugging del pipeline.
         """
         extractor = CSVExtractor(source_path=tmp_path, encoding="latin-1", sep=";")
 
@@ -137,9 +164,11 @@ class TestCSVExtractorConfiguration:
         self, tmp_path: Path
     ) -> None:
         """
-        Debe parsear correctamente cuando el CSV usa separador personalizado.
+        Debe parsear correctamente CSV con separador personalizado.
+        
+        Verifica que el extractor respete la configuración de separador
+        al leer archivos con formato no estándar (ej: punto y coma).
         """
-        # Crear CSV con separador punto y coma
         csv_path = tmp_path / "semicolon.csv"
         with open(csv_path, "w", encoding="utf-8") as f:
             f.write("id;name;value\n")
