@@ -28,7 +28,7 @@ class ReviewsCleaner(DataCleaner):
     DATE_COLUMNS = ["created_at"]
 
     @log_substep(substep_name="Manejo de nulos", logger=transform_logger)
-    def handle_nulls(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _handle_nulls(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Verifica que no hayan nulos en claves esenciales y en rating/fecha;
         rellena helpful_votes con valor cero.
@@ -41,7 +41,7 @@ class ReviewsCleaner(DataCleaner):
         return df
 
     @log_substep(substep_name="Manejo de duplicados", logger=transform_logger)
-    def handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Depura duplicados por review_id conservando la versión más reciente para métricas de satisfacción coherentes.
         """
@@ -53,7 +53,7 @@ class ReviewsCleaner(DataCleaner):
         return df
 
     @log_substep(substep_name="Conversión de tipos", logger=transform_logger)
-    def convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Normaliza ratings/votos a numérico y fechas de creación a datetime para cálculos de promedio y series temporales.
         """
@@ -70,7 +70,7 @@ class ReviewsCleaner(DataCleaner):
         return df
 
     @log_substep(substep_name="Validación post-limpieza", logger=transform_logger)
-    def validate_cleaned_data(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _validate_cleaned_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Comprueba columnas requeridas de la reseña antes de agregaciones de calidad y volumen.
         """

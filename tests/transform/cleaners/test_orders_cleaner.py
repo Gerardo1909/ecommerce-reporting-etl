@@ -24,7 +24,7 @@ from transform.cleaners.orders_cleaner import OrdersCleaner
 @pytest.mark.transform
 class TestOrdersCleanerNulls:
     """
-    Tests de `handle_nulls` para validación de claves y relleno numérico.
+    Tests de `_handle_nulls` para validación de claves y relleno numérico.
 
     Verifica que:
     - Se lanza NullConstraintError cuando hay nulos en columnas clave
@@ -36,13 +36,13 @@ class TestOrdersCleanerNulls:
     ):
         """
         Dado un DataFrame con nulos en order_id, customer_id o order_date,
-        Cuando se ejecuta handle_nulls,
+        Cuando se ejecuta _handle_nulls,
         Entonces debe lanzar NullConstraintError indicando las columnas afectadas.
         """
         cleaner = OrdersCleaner()
 
         with pytest.raises(NullConstraintError) as exc_info:
-            cleaner.handle_nulls(raw_orders_dirty.copy())
+            cleaner._handle_nulls(raw_orders_dirty.copy())
 
         check.is_in("order_id", str(exc_info.value))
 
@@ -51,23 +51,27 @@ class TestOrdersCleanerNulls:
     ):
         """
         Dado un DataFrame con claves completas pero nulos en columnas numéricas,
-        Cuando se ejecuta handle_nulls,
+        Cuando se ejecuta _handle_nulls,
         Entonces debe rellenar shipping_cost y discount_percent sin lanzar excepción.
         """
         cleaner = OrdersCleaner()
 
-        cleaned = cleaner.handle_nulls(raw_orders_valid_keys.copy())
+        cleaned = cleaner._handle_nulls(raw_orders_valid_keys.copy())
 
         check.equal(len(cleaned), 3)
+        check.equal(cleaned["notes"].isna().sum(), 0)
+        check.equal(cleaned["promotion_id"].isna().sum(), 0)
         check.equal(cleaned["shipping_cost"].isna().sum(), 0)
         check.equal(cleaned["discount_percent"].isna().sum(), 0)
+        check.equal(cleaned["subtotal"].isna().sum(), 0)
+        check.equal(cleaned["total_amount"].isna().sum(), 0)
 
 
 @pytest.mark.unit
 @pytest.mark.transform
 class TestOrdersCleanerConvert:
     """
-    Tests de `convert_types` para recálculo de totales y normalización.
+    Tests de `_convert_types` para recálculo de totales y normalización.
 
     Verifica que total_amount se recalcula cuando está ausente
     y que los tipos de datos se normalizan correctamente.
@@ -78,12 +82,12 @@ class TestOrdersCleanerConvert:
     ):
         """
         Dado un DataFrame con total_amount nulo pero componentes válidos,
-        Cuando se ejecuta convert_types,
+        Cuando se ejecuta _convert_types,
         Entonces debe recalcular total_amount y no quedar valores nulos.
         """
         cleaner = OrdersCleaner()
 
-        converted = cleaner.convert_types(raw_orders_missing_total_amount.copy())
+        converted = cleaner._convert_types(raw_orders_missing_total_amount.copy())
 
         check.equal(converted["total_amount"].isna().sum(), 0)
 
@@ -104,7 +108,7 @@ class TestOrdersCleanerCleanPipeline:
         """
         Dado un DataFrame con nulos en columnas clave,
         Cuando se ejecuta el pipeline clean,
-        Entonces debe lanzar NullConstraintError durante handle_nulls.
+        Entonces debe lanzar NullConstraintError durante _handle_nulls.
         """
         cleaner = OrdersCleaner()
 

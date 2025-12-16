@@ -18,10 +18,8 @@ class NullStrategy(Enum):
     FILL_MEAN = "fill_mean"
     FILL_MEDIAN = "fill_median"
     FILL_MODE = "fill_mode"
-    FILL_VALUE = "fill_value"
+    FILL_STRING = "fill_string"
     FILL_ZERO = "fill_zero"
-    FORWARD_FILL = "ffill"
-    BACKWARD_FILL = "bfill"
 
 
 class DataCleaner(ABC):
@@ -37,14 +35,14 @@ class DataCleaner(ABC):
         """
         Ejecuta el pipeline de limpieza y devuelve un nuevo DataFrame.
         """
-        df = self.handle_nulls(df.copy())
-        df = self.handle_duplicates(df)
-        df = self.convert_types(df)
-        df = self.validate_cleaned_data(df)
+        df = self._handle_nulls(df.copy())
+        df = self._handle_duplicates(df)
+        df = self._convert_types(df)
+        df = self._validate_cleaned_data(df)
         return df
 
     @abstractmethod
-    def handle_nulls(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _handle_nulls(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Implementa lógica de manejo de valores nulos con lógica de negocio
         específica de la tabla.
@@ -52,7 +50,7 @@ class DataCleaner(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Implementa lógica de manejo de duplicados con lógica de negocio
         específica de la tabla.
@@ -60,7 +58,7 @@ class DataCleaner(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Implementa lógica de manejo de conversión de tipos con lógica de negocio
         específica de la tabla.
@@ -68,7 +66,7 @@ class DataCleaner(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def validate_cleaned_data(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _validate_cleaned_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Implementa lógica de manejo de validación post-limpieza con lógica de negocio
         específica de la tabla.
@@ -77,7 +75,7 @@ class DataCleaner(ABC):
 
     @staticmethod
     def _fill_column(
-        df: pd.DataFrame, column: str, strategy: NullStrategy, fill_value: Any = None
+        df: pd.DataFrame, column: str, strategy: NullStrategy
     ) -> pd.DataFrame:
         """
         Aplica una estrategia de llenado de nulos a una columna.
@@ -93,8 +91,8 @@ class DataCleaner(ABC):
             df[column] = df[column].fillna(0)
             return df
 
-        if strategy == NullStrategy.FILL_VALUE:
-            df[column] = df[column].fillna(fill_value)
+        if strategy == NullStrategy.FILL_STRING:
+            df[column] = df[column].fillna("Sin Especificar")
             return df
 
         if strategy == NullStrategy.FILL_MEAN:
@@ -112,14 +110,6 @@ class DataCleaner(ABC):
                 df[column].mode().iloc[0] if not df[column].mode().empty else fill_value
             )
             df[column] = df[column].fillna(mode_value)
-            return df
-
-        if strategy == NullStrategy.FORWARD_FILL:
-            df[column] = df[column].ffill()
-            return df
-
-        if strategy == NullStrategy.BACKWARD_FILL:
-            df[column] = df[column].bfill()
             return df
 
         return df

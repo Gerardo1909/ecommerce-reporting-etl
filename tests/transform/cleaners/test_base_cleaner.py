@@ -19,16 +19,16 @@ class _DummyCleaner(DataCleaner):
     permitir el testing de utilidades de la clase base.
     """
 
-    def handle_nulls(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _handle_nulls(self, df: pd.DataFrame) -> pd.DataFrame:
         return df
 
-    def handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
         return df
 
-    def convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
         return df
 
-    def validate_cleaned_data(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _validate_cleaned_data(self, df: pd.DataFrame) -> pd.DataFrame:
         return df
 
 

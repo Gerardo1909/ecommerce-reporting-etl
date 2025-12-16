@@ -53,8 +53,6 @@ def extract_stage() -> Dict[str, pd.DataFrame]:
         "customers": "ecommerce_customers",
         "promotions": "ecommerce_promotions",
         "products": "ecommerce_products",
-        "categories": "ecommerce_categories",
-        "brands": "ecommerce_brands",
         "reviews": "ecommerce_reviews",
         "inventory": "ecommerce_inventory",
         "warehouses": "ecommerce_warehouses",
