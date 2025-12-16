@@ -18,10 +18,8 @@ class NullStrategy(Enum):
     FILL_MEAN = "fill_mean"
     FILL_MEDIAN = "fill_median"
     FILL_MODE = "fill_mode"
-    FILL_VALUE = "fill_value"
+    FILL_STRING = "fill_string"
     FILL_ZERO = "fill_zero"
-    FORWARD_FILL = "ffill"
-    BACKWARD_FILL = "bfill"
 
 
 class DataCleaner(ABC):
@@ -77,7 +75,7 @@ class DataCleaner(ABC):
 
     @staticmethod
     def _fill_column(
-        df: pd.DataFrame, column: str, strategy: NullStrategy, fill_value: Any = None
+        df: pd.DataFrame, column: str, strategy: NullStrategy
     ) -> pd.DataFrame:
         """
         Aplica una estrategia de llenado de nulos a una columna.
@@ -93,8 +91,8 @@ class DataCleaner(ABC):
             df[column] = df[column].fillna(0)
             return df
 
-        if strategy == NullStrategy.FILL_VALUE:
-            df[column] = df[column].fillna(fill_value)
+        if strategy == NullStrategy.FILL_STRING:
+            df[column] = df[column].fillna("Sin Especificar")
             return df
 
         if strategy == NullStrategy.FILL_MEAN:
@@ -112,14 +110,6 @@ class DataCleaner(ABC):
                 df[column].mode().iloc[0] if not df[column].mode().empty else fill_value
             )
             df[column] = df[column].fillna(mode_value)
-            return df
-
-        if strategy == NullStrategy.FORWARD_FILL:
-            df[column] = df[column].ffill()
-            return df
-
-        if strategy == NullStrategy.BACKWARD_FILL:
-            df[column] = df[column].bfill()
             return df
 
         return df
