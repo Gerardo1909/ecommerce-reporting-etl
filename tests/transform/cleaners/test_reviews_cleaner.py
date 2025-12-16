@@ -24,7 +24,7 @@ from transform.cleaners.reviews_cleaner import ReviewsCleaner
 @pytest.mark.transform
 class TestReviewsCleanerNulls:
     """
-    Tests de `handle_nulls` para validación de claves y relleno de votos.
+    Tests de `_handle_nulls` para validación de claves y relleno de votos.
 
     Verifica que:
     - Se lanza NullConstraintError cuando hay nulos en columnas clave
@@ -36,13 +36,13 @@ class TestReviewsCleanerNulls:
     ):
         """
         Dado un DataFrame con nulos en review_id, customer_id, rating o created_at,
-        Cuando se ejecuta handle_nulls,
+        Cuando se ejecuta _handle_nulls,
         Entonces debe lanzar NullConstraintError indicando las columnas afectadas.
         """
         cleaner = ReviewsCleaner()
 
         with pytest.raises(NullConstraintError) as exc_info:
-            cleaner.handle_nulls(raw_reviews_dirty.copy())
+            cleaner._handle_nulls(raw_reviews_dirty.copy())
 
         check.is_in("review_id", str(exc_info.value))
 
@@ -51,12 +51,12 @@ class TestReviewsCleanerNulls:
     ):
         """
         Dado un DataFrame con claves completas pero nulos en helpful_votes,
-        Cuando se ejecuta handle_nulls,
+        Cuando se ejecuta _handle_nulls,
         Entonces debe rellenar helpful_votes sin lanzar excepción.
         """
         cleaner = ReviewsCleaner()
 
-        cleaned = cleaner.handle_nulls(raw_reviews_valid_keys.copy())
+        cleaned = cleaner._handle_nulls(raw_reviews_valid_keys.copy())
 
         check.equal(len(cleaned), 3)
         check.equal(cleaned["helpful_votes"].isna().sum(), 0)
@@ -66,7 +66,7 @@ class TestReviewsCleanerNulls:
 @pytest.mark.transform
 class TestReviewsCleanerConvert:
     """
-    Tests de `convert_types` para normalizar calificaciones y fechas.
+    Tests de `_convert_types` para normalizar calificaciones y fechas.
 
     Verifica que rating se convierte a numérico y created_at a datetime.
     """
@@ -76,12 +76,12 @@ class TestReviewsCleanerConvert:
     ):
         """
         Dado un DataFrame con tipos mixtos,
-        Cuando se ejecuta convert_types,
+        Cuando se ejecuta _convert_types,
         Entonces rating debe ser numérico y created_at datetime.
         """
         cleaner = ReviewsCleaner()
 
-        converted = cleaner.convert_types(raw_reviews_valid_keys.copy())
+        converted = cleaner._convert_types(raw_reviews_valid_keys.copy())
 
         check.is_true(pd.api.types.is_numeric_dtype(converted["rating"]))
         check.is_true(pd.api.types.is_datetime64_any_dtype(converted["created_at"]))
@@ -103,7 +103,7 @@ class TestReviewsCleanerCleanPipeline:
         """
         Dado un DataFrame con nulos en columnas clave,
         Cuando se ejecuta el pipeline clean,
-        Entonces debe lanzar NullConstraintError durante handle_nulls.
+        Entonces debe lanzar NullConstraintError durante _handle_nulls.
         """
         cleaner = ReviewsCleaner()
 

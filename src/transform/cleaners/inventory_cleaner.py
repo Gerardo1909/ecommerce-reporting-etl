@@ -29,7 +29,7 @@ class InventoryCleaner(DataCleaner):
     DATE_COLUMNS = ["last_restock_date"]
 
     @log_substep(substep_name="Manejo de nulos", logger=transform_logger)
-    def handle_nulls(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _handle_nulls(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Verifica que no hayan nulos en claves de inventario/producto/bodega y
         rellena cantidades/mínimos/máximos en cero para evaluar stock.
@@ -41,7 +41,7 @@ class InventoryCleaner(DataCleaner):
         return df
 
     @log_substep(substep_name="Manejo de duplicados", logger=transform_logger)
-    def handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Depura duplicados por inventory_id conservando la última versión para reflejar el stock más reciente.
         """
@@ -53,7 +53,7 @@ class InventoryCleaner(DataCleaner):
         return df
 
     @log_substep(substep_name="Conversión de tipos", logger=transform_logger)
-    def convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Convierte métricas de stock y ocupación a numérico y normaliza fechas
         para análisis de salud de inventario.
@@ -69,7 +69,7 @@ class InventoryCleaner(DataCleaner):
         return df
 
     @log_substep(substep_name="Validación post-limpieza", logger=transform_logger)
-    def validate_cleaned_data(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _validate_cleaned_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Verifica columnas esenciales de inventario antes de enriquecer y calcular riesgos de stock.
         """

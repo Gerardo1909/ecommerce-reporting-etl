@@ -41,7 +41,7 @@ class OrdersCleaner(DataCleaner):
     DATE_COLUMNS: List[str] = ["order_date"]
 
     @log_substep(substep_name="Manejo de nulos", logger=transform_logger)
-    def handle_nulls(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _handle_nulls(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Verifica que no hayan nulos en claves principales y rellena importes con medias o ceros para mantener consistencia financiera.
         """
@@ -81,7 +81,7 @@ class OrdersCleaner(DataCleaner):
         return df
 
     @log_substep(substep_name="Manejo de duplicados", logger=transform_logger)
-    def handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Elimina duplicados por order_id conservando la versión más reciente para asegurar unicidad de la orden.
         """
@@ -93,7 +93,7 @@ class OrdersCleaner(DataCleaner):
         return df
 
     @log_substep(substep_name="Conversión de tipos", logger=transform_logger)
-    def convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Convierte importes, ids y fechas a tipos numéricos/fecha,
         y recalcula total_amount cuando falte usando sus componentes.
@@ -148,7 +148,7 @@ class OrdersCleaner(DataCleaner):
         return df
 
     @log_substep(substep_name="Validación post-limpieza", logger=transform_logger)
-    def validate_cleaned_data(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _validate_cleaned_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Verifica presencia de columnas requeridas y tipos esperados para asegurar consistencia previa al enriquecimiento.
         """

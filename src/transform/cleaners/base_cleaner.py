@@ -35,14 +35,14 @@ class DataCleaner(ABC):
         """
         Ejecuta el pipeline de limpieza y devuelve un nuevo DataFrame.
         """
-        df = self.handle_nulls(df.copy())
-        df = self.handle_duplicates(df)
-        df = self.convert_types(df)
-        df = self.validate_cleaned_data(df)
+        df = self._handle_nulls(df.copy())
+        df = self._handle_duplicates(df)
+        df = self._convert_types(df)
+        df = self._validate_cleaned_data(df)
         return df
 
     @abstractmethod
-    def handle_nulls(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _handle_nulls(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Implementa lógica de manejo de valores nulos con lógica de negocio
         específica de la tabla.
@@ -50,7 +50,7 @@ class DataCleaner(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _handle_duplicates(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Implementa lógica de manejo de duplicados con lógica de negocio
         específica de la tabla.
@@ -58,7 +58,7 @@ class DataCleaner(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _convert_types(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Implementa lógica de manejo de conversión de tipos con lógica de negocio
         específica de la tabla.
@@ -66,7 +66,7 @@ class DataCleaner(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def validate_cleaned_data(self, df: pd.DataFrame) -> pd.DataFrame:
+    def _validate_cleaned_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Implementa lógica de manejo de validación post-limpieza con lógica de negocio
         específica de la tabla.

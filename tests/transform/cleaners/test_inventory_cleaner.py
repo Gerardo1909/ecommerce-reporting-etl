@@ -24,7 +24,7 @@ from transform.cleaners.inventory_cleaner import InventoryCleaner
 @pytest.mark.transform
 class TestInventoryCleanerNulls:
     """
-    Tests de `handle_nulls` para validación de claves y relleno numérico.
+    Tests de `_handle_nulls` para validación de claves y relleno numérico.
 
     Verifica que:
     - Se lanza NullConstraintError cuando hay nulos en columnas clave
@@ -36,13 +36,13 @@ class TestInventoryCleanerNulls:
     ):
         """
         Dado un DataFrame con nulos en inventory_id, product_id o warehouse_id,
-        Cuando se ejecuta handle_nulls,
+        Cuando se ejecuta _handle_nulls,
         Entonces debe lanzar NullConstraintError indicando las columnas afectadas.
         """
         cleaner = InventoryCleaner()
 
         with pytest.raises(NullConstraintError) as exc_info:
-            cleaner.handle_nulls(raw_inventory_dirty.copy())
+            cleaner._handle_nulls(raw_inventory_dirty.copy())
 
         check.is_in("inventory_id", str(exc_info.value))
 
@@ -51,12 +51,12 @@ class TestInventoryCleanerNulls:
     ):
         """
         Dado un DataFrame con claves completas pero nulos en columnas numéricas,
-        Cuando se ejecuta handle_nulls,
+        Cuando se ejecuta _handle_nulls,
         Entonces debe rellenar quantity, min_stock_level y max_stock_level.
         """
         cleaner = InventoryCleaner()
 
-        cleaned = cleaner.handle_nulls(raw_inventory_valid_keys.copy())
+        cleaned = cleaner._handle_nulls(raw_inventory_valid_keys.copy())
 
         check.equal(len(cleaned), 3)
         check.equal(
@@ -72,7 +72,7 @@ class TestInventoryCleanerNulls:
 @pytest.mark.transform
 class TestInventoryCleanerConvert:
     """
-    Tests de `convert_types` para normalizar tipos numéricos y fechas.
+    Tests de `_convert_types` para normalizar tipos numéricos y fechas.
 
     Verifica que las columnas numéricas se convierten correctamente
     y que las fechas se parsean a datetime.
@@ -83,12 +83,12 @@ class TestInventoryCleanerConvert:
     ):
         """
         Dado un DataFrame con tipos mixtos,
-        Cuando se ejecuta convert_types,
+        Cuando se ejecuta _convert_types,
         Entonces quantity debe ser numérico y last_restock_date datetime.
         """
         cleaner = InventoryCleaner()
 
-        converted = cleaner.convert_types(raw_inventory_valid_keys.copy())
+        converted = cleaner._convert_types(raw_inventory_valid_keys.copy())
 
         check.is_true(pd.api.types.is_numeric_dtype(converted["quantity"]))
         check.is_true(
@@ -112,7 +112,7 @@ class TestInventoryCleanerCleanPipeline:
         """
         Dado un DataFrame con nulos en columnas clave,
         Cuando se ejecuta el pipeline clean,
-        Entonces debe lanzar NullConstraintError durante handle_nulls.
+        Entonces debe lanzar NullConstraintError durante _handle_nulls.
         """
         cleaner = InventoryCleaner()
 
