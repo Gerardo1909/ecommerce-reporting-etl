@@ -360,8 +360,10 @@ def log_table_processing(stage: str, logger: logging.Logger, table_name: str = "
                 duration_ms = (time.time() - start_time) * 1000
                 run_context.add_error(stage, actual_table_name, str(e))
                 logger.error(
-                    f"Error en procesamiento de la tabla {actual_table_name} en la etapa {stage}: {e}"
+                    f"Error en procesamiento de la tabla {actual_table_name} en la etapa {stage} tras {duration_ms:.1f}ms: {e}"
                 )
+                # Opcional: registrar métrica de tabla fallida con 0 filas
+                run_context.record_table_metric(actual_table_name, stage, 0, duration_ms)
                 raise
 
         return wrapper
